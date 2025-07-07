@@ -1,0 +1,4 @@
+C:/Escritorio PC Rodri/UTEC/tercer ciclo/Progra_3/proyecto_final/projecto-final-grupogpt/cmake-build-debug/CMakeFiles/train.dir
+C:/Escritorio PC Rodri/UTEC/tercer ciclo/Progra_3/proyecto_final/projecto-final-grupogpt/cmake-build-debug/CMakeFiles/predict.dir
+C:/Escritorio PC Rodri/UTEC/tercer ciclo/Progra_3/proyecto_final/projecto-final-grupogpt/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Escritorio PC Rodri/UTEC/tercer ciclo/Progra_3/proyecto_final/projecto-final-grupogpt/cmake-build-debug/CMakeFiles/rebuild_cache.dir
