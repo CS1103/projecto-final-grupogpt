@@ -114,6 +114,7 @@ El proyecto se ha estructurado siguiendo una arquitectura modular, lo cual facil
 
 #### 2.2 Estructura de carpetas
 
+```bash
 projecto-final-grupogpt/
 ├── CMakeLists.txt
 ├── main.cpp
@@ -132,7 +133,7 @@ projecto-final-grupogpt/
 ├── stb_image_resize.h
 └── tensor.h
 
-
+```
 
 
 #### 2.3 Manual de uso y casos de prueba
