@@ -114,23 +114,24 @@ El proyecto se ha estructurado siguiendo una arquitectura modular, lo cual facil
 
 #### 2.2 Estructura de carpetas
 
-`projecto-final-grupogpt/
+projecto-final-grupogpt/
+├── CMakeLists.txt
+├── main.cpp
 ├── mnist_train.csv
 ├── mnist_test.csv
-├── main.cpp
-├── neural_network.h
-├── nn_dense.h
-├── nn_activation.h
-├── nn_loss.h
-├── nn_optimizer.h
-├── nn_interfaces.h
-├── tensor.h
-├── mnist_loader.h
 ├── common_helpers.h
 ├── image_processor.h
+├── mnist_loader.h
+├── neural_network.h
+├── nn_activation.h
+├── nn_dense.h
+├── nn_interfaces.h
+├── nn_loss.h
+├── nn_optimizer.h
 ├── stb_image.h
 ├── stb_image_resize.h
-└── CMakeLists.txt`
+└── tensor.h
+
 
 
 
