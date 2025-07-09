@@ -1,7 +1,3 @@
-//
-// Created by migue on 6/07/2025.
-//
-
 #ifndef TENSOR_H
 #define TENSOR_H
 
@@ -47,6 +43,12 @@ private:
         return flat_index;
     }
 
+    // Helper for variadic constructor
+    template <typename... Dims>
+    static std::array<size_t, Rank> make_shape(Dims... dims) {
+        return std::array<size_t, Rank>{static_cast<size_t>(dims)...};
+    }
+
 public:
     Tensor() : _shape({}), _strides({}) {}
 
@@ -57,8 +59,9 @@ public:
     }
 
     template <typename... Dims>
-    requires (sizeof...(Dims) == Rank)
-    Tensor(Dims... dims) : Tensor(std::array<size_t, Rank>{static_cast<size_t>(dims)...}) {}
+    Tensor(Dims... dims) : Tensor(make_shape(dims...)) {
+        static_assert(sizeof...(Dims) == Rank, "Number of dimensions must match Rank");
+    }
 
     const std::array<size_t, Rank>& shape() const noexcept { return _shape; }
     size_t size() const noexcept { return _data.size(); }
@@ -68,11 +71,17 @@ public:
     auto begin() const { return _data.cbegin(); }
     auto end() const { return _data.cend(); }
 
-    template <typename... Idxs> requires (sizeof...(Idxs) == Rank)
-    T& operator()(Idxs... idxs) { return _data[get_flat_index(idxs...)]; }
+    template <typename... Idxs>
+    T& operator()(Idxs... idxs) {
+        static_assert(sizeof...(Idxs) == Rank, "Number of indices must match Rank");
+        return _data[get_flat_index(idxs...)];
+    }
 
-    template <typename... Idxs> requires (sizeof...(Idxs) == Rank)
-    const T& operator()(Idxs... idxs) const { return _data[get_flat_index(idxs...)]; }
+    template <typename... Idxs>
+    const T& operator()(Idxs... idxs) const {
+        static_assert(sizeof...(Idxs) == Rank, "Number of indices must match Rank");
+        return _data[get_flat_index(idxs...)];
+    }
 
     T& operator[](size_t index) { return _data[index]; }
     const T& operator[](size_t index) const { return _data[index]; }
@@ -97,45 +106,42 @@ public:
                 return result;
             }
         }
-        assert(_shape == other._shape && "Tensor shapes must be identical for this operation or support broadcasting.");
-        Tensor result(_shape);
-        for(size_t i = 0; i < _data.size(); ++i) {
-            result[i] = _data[i] + other[i];
+        if (_shape != other._shape) {
+            std::cerr << "[TENSOR ERROR] Shape mismatch in operator+: (";
+            for (size_t i = 0; i < Rank; ++i) std::cerr << _shape[i] << (i+1<Rank?", ":"");
+            std::cerr << ") vs (";
+            for (size_t i = 0; i < Rank; ++i) std::cerr << other._shape[i] << (i+1<Rank?", ":"");
+            std::cerr << ")\n";
         }
+        assert(_shape == other._shape);
+        Tensor result(_shape);
+        for(size_t i = 0; i < _data.size(); ++i) result[i] = _data[i] + other[i];
         return result;
     }
 
     Tensor operator-(const Tensor& other) const {
         assert(_shape == other._shape);
         Tensor result(_shape);
-        for(size_t i = 0; i < _data.size(); ++i) {
-            result[i] = _data[i] - other[i];
-        }
+        for(size_t i = 0; i < _data.size(); ++i) result[i] = _data[i] - other[i];
         return result;
     }
 
     Tensor operator*(const Tensor& other) const {
         assert(_shape == other._shape);
         Tensor result(_shape);
-        for(size_t i = 0; i < _data.size(); ++i) {
-            result[i] = _data[i] * other[i];
-        }
+        for(size_t i = 0; i < _data.size(); ++i) result[i] = _data[i] * other[i];
         return result;
     }
 
     Tensor operator*(const T& scalar) const {
         Tensor result(_shape);
-        for(size_t i=0; i<_data.size(); ++i) {
-            result[i] = _data[i] * scalar;
-        }
+        for(size_t i=0; i<_data.size(); ++i) result[i] = _data[i] * scalar;
         return result;
     }
 
     Tensor operator/(const T& scalar) const {
         Tensor result(_shape);
-        for(size_t i=0; i<_data.size(); ++i) {
-            result[i] = _data[i] / scalar;
-        }
+        for(size_t i=0; i<_data.size(); ++i) result[i] = _data[i] / scalar;
         return result;
     }
 
