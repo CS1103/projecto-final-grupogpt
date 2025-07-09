@@ -97,35 +97,45 @@ public:
                 return result;
             }
         }
-        assert(_shape == other._shape);
+        assert(_shape == other._shape && "Tensor shapes must be identical for this operation or support broadcasting.");
         Tensor result(_shape);
-        for(size_t i = 0; i < _data.size(); ++i) result[i] = _data[i] + other[i];
+        for(size_t i = 0; i < _data.size(); ++i) {
+            result[i] = _data[i] + other[i];
+        }
         return result;
     }
 
     Tensor operator-(const Tensor& other) const {
         assert(_shape == other._shape);
         Tensor result(_shape);
-        for(size_t i = 0; i < _data.size(); ++i) result[i] = _data[i] - other[i];
+        for(size_t i = 0; i < _data.size(); ++i) {
+            result[i] = _data[i] - other[i];
+        }
         return result;
     }
 
     Tensor operator*(const Tensor& other) const {
         assert(_shape == other._shape);
         Tensor result(_shape);
-        for(size_t i = 0; i < _data.size(); ++i) result[i] = _data[i] * other[i];
+        for(size_t i = 0; i < _data.size(); ++i) {
+            result[i] = _data[i] * other[i];
+        }
         return result;
     }
 
     Tensor operator*(const T& scalar) const {
         Tensor result(_shape);
-        for(size_t i=0; i<_data.size(); ++i) result[i] = _data[i] * scalar;
+        for(size_t i=0; i<_data.size(); ++i) {
+            result[i] = _data[i] * scalar;
+        }
         return result;
     }
 
     Tensor operator/(const T& scalar) const {
         Tensor result(_shape);
-        for(size_t i=0; i<_data.size(); ++i) result[i] = _data[i] / scalar;
+        for(size_t i=0; i<_data.size(); ++i) {
+            result[i] = _data[i] / scalar;
+        }
         return result;
     }
 
