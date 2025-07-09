@@ -1,0 +1,5 @@
+Dense 784 128
+ReLU
+Dense 128 64
+ReLU
+Dense 64 10
