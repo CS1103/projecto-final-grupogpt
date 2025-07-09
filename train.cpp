@@ -20,9 +20,9 @@ int main() {
         const size_t IMAGE_SIZE = 784;
         const size_t NUM_CLASSES = 10;
 
-        const size_t EPOCHS = 10;
+        const size_t EPOCHS = 25;
         const size_t BATCH_SIZE = 100;
-        const double LEARNING_RATE = 0.05;
+        const double LEARNING_RATE = 0.0005;
 
         std::cout << "Loading MNIST data..." << std::endl;
         auto [train_images, train_labels] = utec::data::load_mnist_csv(TRAIN_CSV, NUM_TRAIN);
@@ -30,14 +30,13 @@ int main() {
         std::cout << "Data loaded." << std::endl;
 
         NeuralNetwork<double> model;
-        model.add_layer(std::make_unique<Dense<double>>(IMAGE_SIZE, 128));
+        model.add_layer(std::make_unique<Dense<double>>(IMAGE_SIZE, 256));
         model.add_layer(std::make_unique<ReLU<double>>());
-        model.add_layer(std::make_unique<Dense<double>>(128, 64));
+        model.add_layer(std::make_unique<Dense<double>>(256, 128));
         model.add_layer(std::make_unique<ReLU<double>>());
-        model.add_layer(std::make_unique<Dense<double>>(64, NUM_CLASSES));
+        model.add_layer(std::make_unique<Dense<double>>(128, NUM_CLASSES));
 
         SoftmaxCrossEntropyLoss<double> criterion;
-        Adam<double> optimizer(LEARNING_RATE);
 
         std::cout << "\nStarting training..." << std::endl;
         size_t num_batches = NUM_TRAIN / BATCH_SIZE;
@@ -58,7 +57,7 @@ int main() {
                 model.backward(grad);
 
                 for (auto& layer : model.get_layers()) {
-                     layer->update_params(optimizer);
+                     layer->update(LEARNING_RATE);
                 }
             }
             std::cout << "Epoch " << epoch + 1 << "/" << EPOCHS
