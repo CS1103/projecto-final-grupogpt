@@ -36,7 +36,7 @@ void load_layer_weights(NeuralNetwork<double>& net) {
 int main() {
     try {
         // Cargar imagen y procesar
-        auto input = utec::utils::preprocess_image_stb("../Imagenes_Prueba/ceronegro.png");
+        auto input = utec::utils::preprocess_image_stb("../Imagenes_Prueba/.png");
 
 
 
