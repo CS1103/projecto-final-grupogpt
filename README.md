@@ -520,7 +520,24 @@ Salida esperada:
 
 ---
 
-### 6. Bibliografía
+
+
+## 6. Trabajo en equipo
+
+
+
+| Tarea                            | Miembro                                   | Rol                                           |
+|----------------------------------|--------------------------------------------|-----------------------------------------------|
+| Investigación del dataset y | Rodrigo Miguel Gomez Pacheco - 202410309   | Análisis del dataset y Documentar bases teóricas      |
+| Diseño de la arquitectura        | Julio Ruiz Villavicencio - 202410616 | Organización estructural del sistema    |
+| Implementación del modelo final  |  Javier Alejandro Castro Barreto - 202310081      | Programación de la red neuronal en C++        |
+
+
+---
+
+
+
+### 7. Bibliografía
 
 [1] G. Strang, *Linear Algebra and Its Applications*, 4th ed. Belmont, CA: Brooks/Cole, 2006.
 
