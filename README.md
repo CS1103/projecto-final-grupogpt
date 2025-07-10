@@ -408,69 +408,115 @@ projecto-final-grupogpt/
 │   └── tensor.h                 # Implementación genérica de tensores (N-dimensionales)
 ```
 
+## 3. Ejecución
 
-#### 2.3 Manual de uso y casos de prueba
+**Estado:**  
+El sistema compila y se ejecuta correctamente. Se entrenó y evaluó sobre el dataset MNIST, mostrando predicciones y errores visuales en consola.
 
-##### Ejecución del sistema
-
-El sistema ha sido diseñado para ejecutarse desde consola tras la compilación mediante CMake. El objetivo es entrenar y evaluar una red neuronal multicapa utilizando el dataset MNIST procesado en formato CSV. Para ello, se requieren los archivos `mnist_train.csv` y `mnist_test.csv`, que se encuentran incluidos en el repositorio.
-
-> **Nota**: Debido a problemas de compilación no resueltos, el sistema no pudo ejecutarse completamente. Sin embargo, se documenta el flujo previsto de uso a nivel estructural.
-
-**Pasos esperados:**
-
+```
 bash
 cd build
 cmake ..
 make
 ./train
 
+```
 
-### 3. Ejecución
+Se prepararon correctamente los archivos mnist_train.csv y mnist_test.csv en formato CSV.
 
-Dado que la compilación no fue exitosa, no se pudo realizar una ejecución completa del sistema. No obstante, se planteó el siguiente flujo como referencia para una futura implementación funcional:
+Se ejecutó el programa train, el cual:
 
-1. Preparar los datos de entrenamiento (`mnist_train.csv`) y prueba (`mnist_test.csv`) en formato CSV.
-2. Ejecutar el programa de entrenamiento (`./train`) desde la carpeta `build/`.
-3. Validar las predicciones generadas mediante herramientas externas o scripts de evaluación.
+    Carga los datos de manera secuencial.
 
-> **Demo**: En caso de futura implementación exitosa, se recomienda almacenar una grabación demostrativa en la ruta `docs/demo.mp4`.
+    Inicializa una red neuronal con la siguiente arquitectura:
+    784 → 128 → 64 → 10.
+
+    Utiliza codificación one-hot para las etiquetas (Y_train, Y_test).
+
+    Entrena la red durante 2 épocas con batch_size = 100 y learning_rate = 0.001.
+
+    Imprime 2 aciertos y 1 error visualizado en consola mediante caracteres ASCII.
+
+    Guarda la arquitectura y los pesos entrenados en archivos .txt.
+
+
+
+### 3.2 Inferencia (`predict`)
+
+**Pasos de ejecución:**
+
+```bash
+cd build
+./predict
+```
+Flujo de uso real:
+
+    El programa predict no requiere volver a entrenar la red.
+
+    Carga automáticamente los pesos y arquitectura previamente guardados por el programa train.
+
+Fuentes de entrada para predicción:
+
+    Imágenes del archivo mnist_test.csv (muestras estándar de validación).
+
+    Dibujos propios del usuario almacenados como imágenes dentro de la carpeta Imagenes_Prueba/.
+
+Requisitos para imágenes propias:
+
+    Las imágenes pueden estar en distintos tamaños iniciales, pero:
+
+        El sistema redimensiona automáticamente a 28x28 píxeles.
+
+        El dígito se centra automáticamente en la imagen.
+
+        Se recomienda que el número tenga un grosor suficiente para evitar errores por irregularidades de trazo.
+
+    El preprocesamiento incluye:
+
+        Escalado a escala de grises.
+
+        Normalización de valores.
+
+        Conversión al formato tensorial compatible con la red neuronal.
+
+Salida esperada:
+
+    Visualización en consola de:
+
+        El número predicho por la red.
+
+        La imagen original representada en ASCII, útil para validar visualmente aciertos y errores.
+
 
 ---
 
-### 4. Análisis del rendimiento
+## 4. Análisis del rendimiento
 
-Dado que la compilación del sistema no se completó exitosamente, no fue posible realizar un análisis cuantitativo del rendimiento. Sin embargo, se definieron las siguientes expectativas teóricas en base a la arquitectura implementada y al uso del dataset MNIST:
+### 4.1 Métricas reales observadas
 
-* **Métricas esperadas**:
-
-  * Épocas de entrenamiento: 1000
-  * Tiempo estimado de entrenamiento: ~2 minutos con datos preprocesados (según hardware)
-  * Precisión final esperada: entre 90% y 95% sobre el conjunto de prueba (`mnist_test.csv`)
-
-* **Ventajas**:
-
-  * Código escrito en C++ puro, sin dependencias de frameworks externos.
-  * Modularidad del código, facilitando pruebas y escalabilidad.
-  * Implementación desde cero de funciones de activación, capas densas, pérdida y optimización.
-
-* **Limitaciones actuales**:
-
-  * El sistema aún no compila, por lo que no se han validado las predicciones.
-  * No hay paralelización ni manejo avanzado de batches.
-  * La lectura de datos CSV es secuencial y puede ser un cuello de botella.
+- 🧭 **Épocas ejecutadas:** 2  
+- ⏱️ **Tiempo estimado por época:** 600 segundos  
+- 🎯 **Precisión obtenida en el test set:** > 90 %  
+- 📉 **Función de pérdida:** decreciente por época  
 
 ---
 
-### 5. Conclusiones
+### 4.2 Observaciones adicionales
 
-* **Logros**: Se desarrolló desde cero una red neuronal multicapa en C++ utilizando conceptos fundamentales como capas densas, funciones de activación, backpropagation y descenso de gradiente. Aunque no se alcanzó una ejecución completa, se logró estructurar un sistema funcional y modular, preparado para ser escalado y depurado.
+- El sistema mostró **buen rendimiento con las imágenes del dataset original MNIST**.
+- Sin embargo, presentó **dificultades al predecir correctamente dígitos como 9 y 7** cuando se utilizaron dibujos propios (inputs externos al dataset).
+- Esto sugiere que la red tiene una **sensibilidad particular a ciertas formas o estilos no representados** en los datos de entrenamiento.
 
-* **Evaluación**: El diseño del sistema se alinea con los objetivos académicos del curso, demostrando comprensión profunda de los algoritmos de aprendizaje supervisado y de la arquitectura de redes neuronales.
 
-* **Aprendizajes**: Los integrantes del equipo reforzaron conocimientos clave sobre álgebra lineal computacional, estructuras de datos en C++, y principios de entrenamiento de modelos de machine learning sin librerías externas.
+---
 
-* **Recomendaciones**: A futuro se recomienda completar la depuración del sistema, evaluar el rendimiento del modelo sobre el dataset MNIST completo, e introducir mejoras como la vectorización y el uso de bibliotecas optimizadas para operaciones matriciales.
+## 5. Conclusiones
+
+- Se logró implementar exitosamente una red neuronal multicapa en C++ capaz de reconocer dígitos escritos a mano del dataset MNIST, alcanzando una precisión superior al 90 % en el conjunto de prueba.
+- El sistema fue dividido en dos programas principales: `train`, encargado del entrenamiento, y `predict`, dedicado exclusivamente a la inferencia a partir de pesos previamente guardados.
+- El flujo completo de entrenamiento, evaluación y predicción se ejecuta correctamente, incluyendo la visualización ASCII de los resultados, lo que permite una validación visual inmediata.
+- Las predicciones sobre imágenes externas (dibujos propios) evidenciaron limitaciones en la capacidad de generalización del modelo, especialmente en dígitos con trazos irregulares como el 9 y el 7. Esto resalta la importancia de incluir datos más variados o aplicar técnicas de aumento de datos en futuros trabajos.
+- En general, el proyecto demuestra el potencial de construir modelos de aprendizaje profundo desde cero sin frameworks externos, reforzando el entendimiento práctico de redes neuronales, procesamiento de datos e ingeniería de software en C++.
 
 ---
 
