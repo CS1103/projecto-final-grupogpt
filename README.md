@@ -97,42 +97,314 @@ El proyecto se ha estructurado siguiendo una arquitectura modular, lo cual facil
 
 * **Principales módulos del sistema**:
 
-  - `neural_network.h`: Define la estructura de la red neuronal, incluyendo métodos de entrenamiento, evaluación y predicción.
-  - `nn_dense.h`: Implementación de las capas densas (fully connected), donde se calculan los productos matriciales y se almacenan los parámetros (pesos y sesgos).
-  - `nn_activation.h`: Contiene las funciones de activación utilizadas, como ReLU y Softmax, junto con sus derivadas.
-  - `nn_loss.h`: Implementación de la función de pérdida (Cross-Entropy) para problemas de clasificación multiclase.
-  - `nn_optimizer.h`: Define el optimizador SGD que actualiza los pesos de la red.
-  - `mnist_loader.h`: Responsable de leer y procesar los archivos CSV del dataset MNIST, normalizar los datos e indexar las etiquetas.
-  - `tensor.h`: Define una estructura para representar tensores (vectores y matrices), facilitando las operaciones matriciales requeridas durante el entrenamiento.
-  - `common_helpers.h`: Funciones auxiliares para manejo de cadenas, parsing de CSV y operaciones comunes.
-  - `image_processor.h`: Módulo opcional para convertir imágenes PNG a vectores compatibles con la red (procesamiento previo).
-  - `stb_image.h` y `stb_image_resize.h`: Librerías externas utilizadas para el procesamiento de imágenes en formato PNG.
+ ### 📄 `neural_network.h`
 
-* **Diseño orientado a interfaces**:
+**Descripción:**  
+Este archivo define la clase `NeuralNetwork`, que representa la estructura principal de la red neuronal multicapa (MLP).
 
-  El sistema incorpora interfaces genéricas como `ILayer`, `IActivation`, `ILoss` y `IOptimizer`, que permiten desacoplar las implementaciones concretas y seguir principios de diseño como el Open/Closed (abierto a extensión, cerrado a modificación). Este enfoque posibilita extender el sistema con nuevas capas, funciones o métodos de entrenamiento sin alterar la estructura central.
+**Responsabilidad principal:**  
+Gestionar la **secuencia de capas** de la red y coordinar el flujo de datos durante las fases de **propagación hacia adelante (forward)** y **retropropagación del error (backward)**.
 
-#### 2.2 Estructura de carpetas
+**Características clave:**
 
-```bash
+- Utiliza un vector de punteros inteligentes (`std::unique_ptr`) a la interfaz `ILayer<T>`, lo que permite almacenar distintos tipos de capas (densas, activación, etc.) de forma polimórfica.
+- El método `add_layer()` permite construir la red añadiendo capas dinámicamente.
+- El método `forward()` propaga una entrada a través de todas las capas y devuelve la salida.
+- El método `backward()` recorre las capas en orden inverso, propagando el gradiente hacia atrás.
+- `predict()` es simplemente un alias de `forward()`, pensado para la fase de inferencia.
+- La red es **modular** y **extensible**, ya que depende solo de la interfaz `ILayer`.
+
+**Relación con otros archivos:**
+
+- Incluye cabeceras como `nn_dense.h`, `nn_activation.h`, `nn_loss.h` y `nn_optimizer.h`, lo que indica que cada capa específica (como `DenseLayer`, `ReLU`, etc.) implementa la interfaz común `ILayer<T>`.
+- Utiliza la clase `Tensor2D<T>` como tipo de entrada/salida para representar los datos (probablemente un alias de `Tensor<T, 2>`).
+
+### 📄 `nn_dense.h`
+
+**Descripción:**  
+Este archivo implementa la clase `Dense`, que representa una **capa densa (fully connected)** en la red neuronal. Es una de las capas principales del modelo MLP.
+
+**Responsabilidad principal:**  
+Realizar el producto matricial entre la entrada y los pesos (`_weights`), sumar los sesgos (`_biases`) y propagar el resultado hacia la siguiente capa. También se encarga de calcular los gradientes y actualizar los parámetros durante el entrenamiento.
+
+**Características clave:**
+
+- Inicializa los pesos con una distribución normal escalada por la dimensión de entrada (He initialization).
+- Implementa los métodos:
+  - `forward()`: Propagación hacia adelante.
+  - `backward()`: Retropropagación del error, calculando gradientes de pesos y sesgos.
+  - `update_params()`: Actualiza los parámetros usando un optimizador (como SGD).
+- Soporta carga y guardado de pesos (`save_weights` y `load_weights`) para persistencia del modelo.
+- Guarda el último input (`_last_input`) para usarlo en la retropropagación.
+
+**Relación con otros archivos:**
+
+- Depende de `nn_interfaces.h`, ya que hereda de la interfaz `ILayer<T>`.
+- Utiliza `Tensor2D<T>` para representar entradas, pesos y gradientes.
+- Colabora con `IOptimizer` (ej. `SGDOptimizer`) para actualizar sus parámetros.
+
+### 📄 `nn_activation.h`
+
+**Descripción:**  
+Este archivo define la clase `ReLU`, una función de activación usada comúnmente en redes neuronales profundas. Implementa la interfaz `ILayer<T>`, lo que le permite integrarse como una capa más dentro de la red.
+
+**Responsabilidad principal:**  
+Aplicar la función de activación **ReLU (Rectified Linear Unit)** durante la propagación hacia adelante, y su derivada durante la retropropagación.
+
+**Características clave:**
+
+- En el método `forward()`, reemplaza los valores negativos por cero, conservando los positivos.
+- Utiliza una **máscara (`_mask`)** para almacenar qué entradas fueron mayores que cero, lo cual se usa en la fase `backward()` para derivar correctamente.
+- En `backward()`, propaga el gradiente solo donde la entrada original fue positiva (según la máscara).
+
+**Relación con otros archivos:**
+
+- Hereda de la interfaz `ILayer<T>`, definida en `nn_interfaces.h`, lo que permite su uso dentro de la red definida en `neural_network.h`.
+- Utiliza `Tensor2D<T>` como estructura para manejar las matrices de activación y gradientes.
+
+### 📄 `nn_loss.h`
+
+**Descripción:**  
+Este archivo implementa la clase `SoftmaxCrossEntropyLoss`, que combina la función de activación **Softmax** con la función de pérdida **Entropía Cruzada (Cross-Entropy)**. Es ideal para tareas de **clasificación multiclase**, como el reconocimiento de dígitos en MNIST.
+
+**Responsabilidad principal:**  
+- Calcular la **pérdida** entre las predicciones (`logits`) y las etiquetas reales codificadas en **one-hot**.
+- Calcular el **gradiente** necesario para retropropagación en el entrenamiento.
+
+**Características clave:**
+
+- Realiza el cálculo de **Softmax** de forma numéricamente estable (usando el truco de restar el valor máximo por fila).
+- Evita problemas de precisión al calcular logaritmos mediante una constante `epsilon` (`std::numeric_limits<T>::epsilon()`).
+- Guarda internamente:
+  - `_softmax_outputs`: resultados de la activación softmax.
+  - `_last_targets`: etiquetas reales del batch.
+- El método `forward()` devuelve la pérdida promedio por batch.
+- El método `backward()` devuelve el gradiente de la pérdida respecto a las salidas (`softmax_outputs - targets`), ya que esta combinación permite una derivada simplificada y eficiente.
+
+**Relación con otros archivos:**
+
+- Utiliza la clase `Tensor2D<T>` como estructura principal para representar matrices de entrada, salida y gradiente.
+- Se integra con la red definida en `neural_network.h` y se usa típicamente después de la última capa (por ejemplo, después de `Dense` y `Softmax` implícito).
+
+### 📄 `nn_optimizer.h`
+
+**Descripción:**  
+Este archivo define dos algoritmos de optimización: **SGD (Stochastic Gradient Descent)** y **Adam**, ambos implementando la interfaz `IOptimizer<T>`. Estos optimizadores actualizan los pesos y sesgos de las capas entrenables usando los gradientes calculados durante la retropropagación.
+
+**Responsabilidad principal:**  
+Aplicar reglas de actualización a los parámetros del modelo (pesos y sesgos) con base en los gradientes y una tasa de aprendizaje.
+
+---
+
+#### 🔹 `SGD` (Stochastic Gradient Descent)
+
+- Algoritmo de optimización más simple.
+- La clase `SGD` recibe una tasa de aprendizaje (`_lr`) y actualiza los parámetros según la fórmula:  
+  \[
+  \text{param} = \text{param} - \text{lr} \times \text{grad}
+  \]
+- Método: `update(Tensor<T,2>& params, const Tensor<T,2>& grads)`
+
+---
+
+#### 🔹 `Adam` (Adaptive Moment Estimation)
+
+- Optimizador avanzado que adapta la tasa de aprendizaje para cada parámetro.
+- Utiliza momentos de primer orden (**m**, promedio de los gradientes) y segundo orden (**v**, promedio de los gradientes al cuadrado).
+- Aplica corrección de sesgo (`m_hat`, `v_hat`) en cada iteración `t`.
+- Internamente maneja vectores `m`, `v` y contador `t` usando `thread_local`, lo que permite mantener el estado del optimizador por hilo.
+
+**Fórmula de actualización usada:**
+\[
+\theta = \theta - \eta \cdot \frac{m_t}{\sqrt{v_t} + \varepsilon}
+\]
+
+**Relación con otros archivos:**
+
+- Se usa desde las capas entrenables como `Dense` mediante el método `update_params()` del `ILayer<T>`.
+- Compatible con cualquier estructura de parámetros basada en `Tensor2D<T>`.
+
+### 📄 `mnist_loader.h`
+
+**Descripción:**  
+Este archivo implementa una utilidad para cargar datos del conjunto **MNIST** desde archivos `.csv`, formateándolos como tensores numéricos compatibles con la red neuronal.
+
+**Responsabilidad principal:**  
+Leer y procesar los datos de imágenes y etiquetas desde el archivo CSV, normalizarlos y representarlos como tensores `Tensor2D<double>` que se usarán como entradas (`images`) y salidas (`labels`) en el entrenamiento del modelo.
+
+**Características clave:**
+
+- La función `load_mnist_csv()`:
+  - Recibe la ruta del archivo `.csv` y el número de imágenes a cargar.
+  - Convierte las imágenes en escala de grises de 28x28 (784 píxeles) a un tensor normalizado entre 0 y 1.
+  - Convierte las etiquetas (dígitos del 0 al 9) a codificación **one-hot** de 10 dimensiones.
+- Usa la función auxiliar `split()` para dividir cada línea del CSV.
+- Devuelve un `std::pair<Tensor2D_d, Tensor2D_d>` que representa:  
+  `⟶ (imágenes_normalizadas, etiquetas_one_hot)`
+
+**Relación con otros archivos:**
+
+- Utiliza la clase `Tensor2D` (definida en `tensor.h`) para almacenar los datos cargados.
+- Es utilizada al inicio del entrenamiento para preparar los datos provenientes de `mnist_train.csv` y `mnist_test.csv`.
+
+**Ejemplo de uso en entrenamiento:**
+
+```cpp
+auto [train_images, train_labels] = utec::data::load_mnist_csv("mnist_train.csv", 60000);
+auto [test_images, test_labels] = utec::data::load_mnist_csv("mnist_test.csv", 10000);
+```
+
+### 📄 `tensor.h`
+
+**Descripción:**  
+Este archivo implementa una estructura de datos genérica llamada `Tensor`, utilizada para representar arreglos multidimensionales (vectores, matrices, etc.) de cualquier tipo numérico. Constituye la base del cálculo algebraico dentro del modelo neuronal.
+
+**Responsabilidad principal:**  
+Proporcionar un contenedor flexible y eficiente para almacenar datos y realizar operaciones matemáticas esenciales como suma, resta, multiplicación escalar, broadcasting, transposición y multiplicación de matrices. Es indispensable para la propagación hacia adelante y hacia atrás en la red neuronal.
+
+**Características clave:**
+
+- Template general `Tensor<T, Rank>` para manejar tensores de cualquier tipo y dimensión (`Rank`).
+- Métodos sobrecargados para:
+  - Acceso multidimensional con `operator()`.
+  - Acceso lineal con `operator[]`.
+  - Operaciones aritméticas `+`, `-`, `*`, `/`.
+  - Transposición (`transpose_2d()`) y multiplicación matricial (`matmul()`).
+- Internamente usa `std::vector<T>` como almacenamiento lineal y `std::array<size_t, Rank>` para la forma (`shape`) y los `strides`.
+- Función de impresión `operator<<` para visualización directa de tensores por consola.
+
+**Utilidad en el proyecto:**
+
+- Es el tipo base sobre el cual operan las capas (`Dense`, `ReLU`, etc.) y el optimizador (`SGDOptimizer`).
+- Permite calcular gradientes, productos matriciales y mantener consistencia dimensional durante el entrenamiento.
+- Aporta abstracción matemática sin depender de librerías externas como Eigen o Armadillo.
+
+**Ejemplo de uso:**
+
+```cpp
+Tensor<double, 2> A(3, 4);     // Tensor de 2D con 3 filas y 4 columnas
+A.fill(1.0);                   // Llenar con unos
+auto B = A.transpose_2d();     // Transponer A
+```
+
+### 📄 `common_helpers.h`
+
+**Descripción:**  
+Este archivo contiene funciones auxiliares utilizadas para evaluar el rendimiento del modelo y extraer predicciones. Proporciona herramientas prácticas para el flujo de pruebas y validación, especialmente después del entrenamiento.
+
+**Responsabilidad principal:**  
+- Determinar la clase predicha a partir del vector de salida de la red.
+- Evaluar el modelo completo sobre el conjunto de prueba, mostrando el **accuracy** total.
+
+**Funciones principales:**
+
+- `get_predicted_class(prediction)`:  
+  Recibe un tensor de salida (por ejemplo, de tamaño `1x10`) y devuelve el índice con mayor probabilidad, usando un **argmax**.
+  
+- `evaluate(model, test_images, test_labels)`:  
+  - Recorre todas las imágenes de prueba y predice la clase utilizando `model.predict()`.
+  - Compara con la etiqueta real (también extraída con argmax).
+  - Muestra la **exactitud (accuracy)** como porcentaje en consola.
+
+**Relación con otros archivos:**
+
+- Usa la clase `NeuralNetwork<double>` definida en `neural_network.h`.
+- Utiliza la clase `Tensor2D<double>` definida en `tensor.h`.
+- Ideal para su uso en el `main()` al final del entrenamiento para validar el desempeño del modelo.
+
+**Ejemplo de uso:**
+
+```cpp
+evaluate(model, test_images, test_labels);
+// Output: Accuracy: 91.75%
+```
+
+### 📄 `image_processor.h`
+
+**Descripción:**  
+Este módulo proporciona funcionalidades para procesar imágenes externas (como PNG) y convertirlas en vectores de entrada adecuados para la red neuronal. Está diseñado especialmente para experimentar con imágenes reales de dígitos manuscritos, fuera del dataset MNIST.
+
+**Responsabilidad principal:**  
+Leer una imagen desde disco, convertirla a escala de grises, binarizarla, encontrar su contorno, redimensionarla a 28x28 píxeles, centrarla y normalizar sus valores para que pueda ser utilizada como entrada para la red neuronal.
+
+**Funciones principales:**
+
+- `preprocess_image_stb(filepath)`  
+  - Carga la imagen usando `stb_image`.
+  - Convierte a escala de grises.
+  - Binariza con umbral (`thr = 60`).
+  - Aplica una dilatación para agrandar el trazo del dígito.
+  - Calcula una bounding box del dígito.
+  - Recorta la región relevante, la redimensiona a 20×20 y la centra en una imagen de 28×28.
+  - Normaliza los valores entre 0 y 1 y devuelve un `Tensor2D<double>` listo para predecir.
+
+- `print_ascii_28x28(tensor)`  
+  - Imprime una representación ASCII del tensor 28×28.
+  - Útil para verificar visualmente si el dígito fue correctamente procesado.
+
+**Relación con otros módulos:**
+
+- Usa `Tensor2D<double>` definido en `tensor.h`.
+- Usa las bibliotecas externas `stb_image.h` y `stb_image_resize.h`.
+
+**Ejemplo de uso:**
+
+```cpp
+auto input_tensor = utec::utils::preprocess_image_stb("mi_digito.png");
+print_ascii_28x28(input_tensor);
+auto prediction = model.predict(input_tensor);
+```
+
+**Dependencias externas:**
+- `stb_image.h` y `stb_image_resize.h` (de `https://github.com/nothings/stb`) para la lectura y redimensionamiento de imágenes PNG.
+
+- `stb_image.h` y `stb_image_resize.h`: Librerías externas utilizadas para el procesamiento de imágenes en formato PNG.
+
+**Diseño orientado a interfaces**:
+
+El sistema incorpora interfaces genéricas como `ILayer`, `IActivation`, `ILoss` y `IOptimizer`, que permiten desacoplar las implementaciones concretas y seguir principios de diseño como el Open/Closed (abierto a extensión, cerrado a modificación). Este enfoque posibilita extender el sistema con nuevas capas, funciones o métodos de entrenamiento sin alterar la estructura central.
+
+## 📁 Estructura del Proyecto
+
+```plaintext
 projecto-final-grupogpt/
-├── CMakeLists.txt
-├── main.cpp
-├── mnist_train.csv
-├── mnist_test.csv
-├── common_helpers.h
-├── image_processor.h
-├── mnist_loader.h
-├── neural_network.h
-├── nn_activation.h
-├── nn_dense.h
-├── nn_interfaces.h
-├── nn_loss.h
-├── nn_optimizer.h
-├── stb_image.h
-├── stb_image_resize.h
-└── tensor.h
+├── .gitignore                    # Archivos/directorios ignorados por Git
+├── CMakeLists.txt                # Configuración de compilación con CMake
+├── README.md                     # Documentación del proyecto
+├── mnist_loader.h               # Carga y preprocesamiento del dataset MNIST
+├── predict.cpp                  # Ejecuta predicciones sobre nuevas imágenes
+├── train.cpp                    # Entrenamiento de la red neuronal
+├── stb_image.h                  # Librería externa para cargar imágenes PNG
+├── stb_image_resize.h           # Librería externa para redimensionar imágenes PNG
 
+├── Imagenes_Prueba/             # Imágenes PNG para pruebas de predicción
+│   └── .gitkeep
+
+├── data/                        # Datos y recursos auxiliares
+│   ├── data.zip
+│   └── model_architecture.txt   # Estructura textual de la red neuronal entrenada
+
+├── layer_output/                # Pesos y sesgos guardados tras entrenamiento
+│   ├── layer0_weights.txt
+│   ├── layer0_biases.txt
+│   ├── layer2_weights.txt
+│   ├── layer2_biases.txt
+│   ├── layer4_weights.txt
+│   └── layer4_biases.txt
+
+├── nn/                          # Núcleo del sistema de red neuronal
+│   ├── neural_network.h         # Clase central que orquesta las capas y el entrenamiento
+│   ├── nn_activation.h          # Funciones de activación (ReLU, Softmax)
+│   ├── nn_dense.h               # Capas densas totalmente conectadas
+│   ├── nn_interfaces.h          # Interfaces base para capas, funciones de pérdida, etc.
+│   ├── nn_loss.h                # Función de pérdida: CrossEntropy
+│   └── nn_optimizer.h           # Optimizador: Descenso de Gradiente Estocástico (SGD)
+
+├── utils/                       # Módulos auxiliares y utilitarios
+│   ├── ascii_view.h             # Visualización de imágenes en formato ASCII
+│   ├── common_helpers.h         # Funciones auxiliares para métricas y evaluación
+│   ├── image_processor.h        # Conversión de imágenes PNG a tensores
+│   └── tensor.h                 # Implementación genérica de tensores (N-dimensionales)
 ```
 
 
