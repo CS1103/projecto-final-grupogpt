@@ -3,7 +3,6 @@
 ## **CS1103 Programación III** · Informe Final
 
 VIDEO DE PRESENTACION: https://drive.google.com/file/d/1Jv4BrKS0BFECl6xLnw_O-fsP1_dKcS__/view?usp=sharing
-
 ### **Descripción**
 
 Reconocimiento de Dígitos Manuscritos mediante Redes Neuronales Multicapa
