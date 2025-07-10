@@ -19,7 +19,7 @@ void progress(size_t b, size_t total) {
               << "] " << b << '/' << total << std::flush;
 }
 
-//── impresión ASCII (█ / espacio) ───────────────────────────────────
+//── impresión ASCII (#/ espacio) ───────────────────────────────────
 template <typename T>
 void print_ascii_bw(const Tensor2D<T>& row784) {
     for (int y = 0; y < 28; ++y) {
